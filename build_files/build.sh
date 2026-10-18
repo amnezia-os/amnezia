@@ -21,20 +21,28 @@ dnf5 install -y \
     vim-enhanced
 
 ### 2. Multimedia codecs ----------------------------------------------------
-## The base image ships a full ffmpeg (negativo17's "fedora-multimedia" repo)
-## but no RPM Fusion. RPM Fusion is where the *hardware accelerated* H.264 /
-## H.265 decoding for AMD (and the full GStreamer plugin set) lives, so add it
-## the way RPM Fusion itself documents it.
+## The base image already ships a full ffmpeg (negativo17's "fedora-multimedia"
+## repo, pulled in by Universal Blue) plus VA-API drivers for AMD, Intel and
+## NVIDIA, so playback of every common format already works.
+##
+## RPM Fusion is enabled for one specific reason: mesa-va-drivers-freeworld, the
+## Mesa VA-API driver with the patent encumbered codecs turned on, which is what
+## gives AMD GPUs hardware H.264/H.265 decoding. It is also simply useful to
+## have RPM Fusion available.
 FEDORA_VERSION="$(rpm -E %fedora)"
 dnf5 install -y \
     "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm" \
     "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm"
 
-## mesa-va-drivers-freeworld is Mesa's VA-API driver with the patent
-## encumbered codecs enabled: this is what gives AMD GPUs hardware video
-## decoding. (Intel is already covered by libva-intel-media-driver, NVIDIA by
-## the driver we install below.) The Fedora build of the same package has to
-## be swapped out, hence the helper.
+## NOTE: we deliberately do NOT install RPM Fusion's GStreamer plugins
+## (gstreamer1-plugins-ugly, gstreamer1-plugins-bad-freeworld). Those link
+## against an older x265 (libx265.so.215) than the one the base image ships
+## (4.2, libx265.so.216), so dnf refuses the whole transaction. GStreamer
+## already decodes everything through the base's gstreamer1-plugin-libav.
+
+## mesa-va-drivers does not exist as a package in Fedora 44 any more (the
+## VA-API drivers were merged into mesa-dri-drivers), but keep the swap logic
+## for the day a future Fedora packages it separately again.
 swap_if_installed() {
     local from="$1" to="$2"
     if rpm -q "${from}" >/dev/null 2>&1; then
@@ -46,10 +54,7 @@ swap_if_installed() {
 
 swap_if_installed mesa-va-drivers mesa-va-drivers-freeworld
 
-dnf5 install -y \
-    gstreamer1-plugins-bad-freeworld \
-    gstreamer1-plugins-ugly \
-    gstreamer1-plugin-openh264
+dnf5 install -y gstreamer1-plugin-openh264
 
 ### 3. Strip out what we don't want ------------------------------------------
 ## A lighter image is a faster image to update. Universal Blue's base is

@@ -20,11 +20,11 @@ ghcr.io/amnezia-os/amnezia:44
 * NVIDIA drivers, open flavour (`nvidia-open`, 615 series) — works on GeForce 16
   series and every RTX 20/30/40/50 series card, plus `nvidia-container-toolkit`
   so the GPU works inside containers too
-* Multimedia: the base image already includes a full `ffmpeg`, and RPM Fusion is
-  enabled with `mesa-va-drivers-freeworld` (hardware H.264/H.265 decoding on
-  AMD), the full GStreamer plugin set (`gstreamer1-plugins-ugly`,
-  `gstreamer1-plugins-bad-freeworld`) and the Cisco openh264 plugin.
-  NVIDIA covers its own VA-API, Intel is covered by `libva-intel-media-driver`
+* Multimedia: the base image already ships a full `ffmpeg` and VA-API drivers
+  for AMD/Intel, RPM Fusion is enabled and `mesa-va-drivers-freeworld` is
+  installed (the patent-enabled Mesa VA-API driver, which is what gives AMD
+  GPUs hardware H.264/H.265 decoding), together with the Cisco openh264 plugin.
+  NVIDIA brings its own VA-API through the driver below
 * KDE applications: `kate`, `gwenview`, `ark`, `mpv`, plus `vim`
 * All Flatpak preinstalls removed — the image stays the same on every machine
 * No preinstalled office suite, KDE PIM (kmail/kontact), KDE games or Elisa.
