@@ -57,15 +57,21 @@ RUN --mount=type=bind,from=akmods-nvidia,source=/rpms,target=/tmp/akmods-rpms \
     IMAGE_NAME=kinoite /tmp/akmods-rpms/ublue-os/nvidia-install.sh
 
 ### VERIFY THE NVIDIA MODULE MATCHES OUR KERNEL
-## If Universal Blue's akmods build lags behind the base image kernel, the
-## module would simply not load at boot and NVIDIA would silently be broken.
-## Fail the build instead of publishing such an image; the fix is to simply
-## re-run the workflow a few hours later.
+## Careful: kmod-nvidia keeps the *driver* version in VERSION (615.78.08), so
+## comparing that against the kernel version is meaningless. What really binds
+## the module to a kernel is its requirement on `kernel-uname-r` plus the module
+## files it installs under /lib/modules/<kernel>. Check both.
+##
+## Why bother: if Universal Blue's akmods build lags behind the base image
+## kernel, the module would simply never load and NVIDIA would be broken at
+## runtime with no obvious reason. Fail the build instead of publishing that;
+## the fix is to re-run the workflow a few hours later.
 RUN kver="$(rpm -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}' kernel | head -n1)" \
- && mver="$(rpm -q --queryformat '%{VERSION}' kmod-nvidia | head -n1)" \
  && echo "kernel in image : ${kver}" \
- && echo "kernel of kmod  : ${mver}" \
- && test "${kver}" = "${mver}"
+ && echo "kmod-nvidia     : $(rpm -q kmod-nvidia)" \
+ && rpm -q --requires kmod-nvidia | grep -qF "kernel-uname-r = ${kver}" \
+ && ls /lib/modules/"${kver}"/extra/nvidia/nvidia*.ko* >/dev/null \
+ && echo "ok: the NVIDIA module is built for ${kver}"
 
 ### RE-ENABLE THE CISCO OPENH264 REPO THE NVIDIA INSTALLER TURNED OFF
 ## The installer disables it on purpose so that its own driver packages win, but

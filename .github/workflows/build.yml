@@ -93,8 +93,10 @@ jobs:
 
             echo "--> the NVIDIA module is built for the kernel we ship"
             kver="$(rpm -q --queryformat "%{VERSION}-%{RELEASE}.%{ARCH}" kernel | head -n1)"
-            mver="$(rpm -q --queryformat "%{VERSION}" kmod-nvidia | head -n1)"
-            [ "${kver}" = "${mver}" ] || { echo "MISMATCH: kernel ${kver} vs kmod ${mver}"; exit 1; }
+            rpm -q --requires kmod-nvidia | grep -qF "kernel-uname-r = ${kver}" \
+              || { echo "MISMATCH: kmod-nvidia is not built for ${kver}"; exit 1; }
+            ls /lib/modules/"${kver}"/extra/nvidia/nvidia*.ko* >/dev/null \
+              || { echo "MISSING: no nvidia module under /lib/modules/${kver}"; exit 1; }
 
             echo "--> branding"
             test -f /usr/share/wallpapers/Amnezia/contents/images/1920x1080.png
