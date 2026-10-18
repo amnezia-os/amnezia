@@ -23,8 +23,8 @@ ghcr.io/amnezia-os/amnezia:44
 * Multimedia: the base image is built on negativo17's `fedora-multimedia`
   repository, so it already ships a complete `ffmpeg` (all patent encumbered
   codecs), `gstreamer1-plugin-libav` and Mesa with the VA-API drivers for AMD,
-  Intel and NVIDIA — including hardware decoding. Cisco's openh264 plugin is
-  added on top. RPM Fusion is deliberately **not** used, see
+  Intel and NVIDIA — including hardware decoding. Amnezia OS adds nothing on
+  top, and deliberately does **not** use RPM Fusion, see
   `build_files/build.sh` for why
 * KDE applications: `kate`, `gwenview`, `ark`, `mpv`, plus `vim`
 * All Flatpak preinstalls removed — the image stays the same on every machine

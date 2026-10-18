@@ -47,10 +47,16 @@ dnf5 install -y \
 ##      That one cannot be worked around: there is no 32 bit RPM Fusion Mesa to
 ##      go with it.
 ##
-## The single piece the base does not ship is Cisco's openh264 plugin, which
-## Fedora Workstation includes by default. It comes from the
-## fedora-cisco-openh264 repo that is already present in the base image.
-dnf5 install -y gstreamer1-plugin-openh264
+## A concrete example of why there is nothing to add here: asking for
+## gstreamer1-plugin-openh264 does not work. Fedora 44's fedora-cisco-openh264
+## repo does not carry that package yet, so dnf resolves the request to
+## negativo17's gstreamer1-plugins-bad instead. That replaces the base image's
+## gstreamer1-plugins-bad-free, drags in 186 MB of soundfonts
+## (fluid-soundfont-lite-patches) as a dependency, and then does not install
+## the requested package at all. Verified in CI: the package never appeared.
+##
+## So this section deliberately installs nothing. Playback is complete as is.
+## (Checked in the VM later: mpv plays H.264/H.265 out of the box.)
 
 ### 3. Strip out what we don't want ------------------------------------------
 ## A lighter image is a faster image to update. Universal Blue's base is
