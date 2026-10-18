@@ -47,16 +47,27 @@ dnf5 install -y \
 ##      That one cannot be worked around: there is no 32 bit RPM Fusion Mesa to
 ##      go with it.
 ##
-## A concrete example of why there is nothing to add here: asking for
-## gstreamer1-plugin-openh264 does not work. Fedora 44's fedora-cisco-openh264
-## repo does not carry that package yet, so dnf resolves the request to
-## negativo17's gstreamer1-plugins-bad instead. That replaces the base image's
-## gstreamer1-plugins-bad-free, drags in 186 MB of soundfonts
-## (fluid-soundfont-lite-patches) as a dependency, and then does not install
-## the requested package at all. Verified in CI: the package never appeared.
+## OpenH264 is the one decision we do take here. Fedora carries two flavours of
+## libopenh264.so.8: the real, patent encumbered Cisco binary from the
+## fedora-cisco-openh264 repo, and noopenh264, a stub from the ordinary Fedora
+## repos that exports the same symbols but does nothing. The base image already
+## installs the stub, and that satisfies everything that links against the
+## library (libavcodec, qt6-qtwebengine, libheif, freerdp-libs). Asserting it
+## here keeps it that way; the real H.264 work is done by ffmpeg's own decoder.
+dnf5 install -y noopenh264
+
+## So we switch the Cisco repo off. For Fedora 44 it holds only openh264,
+## mozilla-openh264 and openh264-devel - no gstreamer1-plugin-openh264 at all -
+## and every one of those would replace our stub with the patented binary.
+## Leaving it on is actively misleading, too: asking dnf for
+## gstreamer1-plugin-openh264 resolves to negativo17's gstreamer1-plugins-bad,
+## which replaces the base's gstreamer1-plugins-bad-free and drags in 186 MB of
+## soundfonts, without installing the requested package. (Seen in CI.)
 ##
-## So this section deliberately installs nothing. Playback is complete as is.
-## (Checked in the VM later: mpv plays H.264/H.265 out of the box.)
+## Want the Cisco binary after all? Re-enable the repo and install it:
+##   sudo dnf5 config-manager setopt fedora-cisco-openh264.enabled=1
+##   sudo dnf5 install openh264
+dnf5 config-manager setopt fedora-cisco-openh264.enabled=0
 
 ### 3. Strip out what we don't want ------------------------------------------
 ## A lighter image is a faster image to update. Universal Blue's base is

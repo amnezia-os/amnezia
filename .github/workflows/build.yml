@@ -109,6 +109,15 @@ jobs:
               fi
             done
 
+            echo "--> OpenH264: the stub is in, the Cisco repo is off"
+            rpm -q noopenh264 >/dev/null || { echo "MISSING: noopenh264"; exit 1; }
+            if rpm -q openh264 >/dev/null 2>&1; then
+              echo "UNEXPECTED: the real Cisco openh264 is installed"; exit 1
+            fi
+            grep -A1 "^\[fedora-cisco-openh264\]$" /etc/dnf/repos.override.d/99-config_manager.repo \
+              | grep -q "^enabled=0" \
+              || { echo "the fedora-cisco-openh264 repo is not switched off"; exit 1; }
+
             echo "smoke tests passed"
           '
 

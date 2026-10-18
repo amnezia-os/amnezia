@@ -24,8 +24,11 @@ ghcr.io/amnezia-os/amnezia:44
   repository, so it already ships a complete `ffmpeg` (all patent encumbered
   codecs), `gstreamer1-plugin-libav` and Mesa with the VA-API drivers for AMD,
   Intel and NVIDIA — including hardware decoding. Amnezia OS adds nothing on
-  top, and deliberately does **not** use RPM Fusion, see
-  `build_files/build.sh` for why
+  top of that: RPM Fusion is deliberately **not** used (it does not mix with
+  this base image, see `build_files/build.sh`), and for OpenH264 the Fedora
+  `noopenh264` stub is kept while the Cisco repo is switched off. To get the
+  real Cisco binary instead: `sudo dnf5 config-manager setopt
+  fedora-cisco-openh264.enabled=1 && sudo dnf5 install openh264`
 * KDE applications: `kate`, `gwenview`, `ark`, `mpv`, plus `vim`
 * All Flatpak preinstalls removed — the image stays the same on every machine
 * No preinstalled office suite, KDE PIM (kmail/kontact), KDE games or Elisa.

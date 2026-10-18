@@ -73,12 +73,11 @@ RUN kver="$(rpm -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}' kernel | head -
  && ls /lib/modules/"${kver}"/extra/nvidia/nvidia*.ko* >/dev/null \
  && echo "ok: the NVIDIA module is built for ${kver}"
 
-### RE-ENABLE THE CISCO OPENH264 REPO THE NVIDIA INSTALLER TURNED OFF
-## The installer disables it on purpose so that its own driver packages win, but
-## gstreamer1-plugin-openh264 comes from there and we want it available for the
-## user as well. (RPM Fusion would be re-enabled here too, but this image
-## deliberately does not use RPM Fusion at all - see build_files/build.sh.)
-RUN dnf5 config-manager setopt fedora-cisco-openh264.enabled=1
+### THE CISCO OPENH264 REPO STAYS OFF
+## The installer above switches it off on purpose, and that is exactly what we
+## want, so there is nothing to restore here: the image uses Fedora's
+## noopenh264 stub instead of the patented Cisco binary. See
+## build_files/build.sh for the whole story.
 
 ### LINTING
 ## Verify final image and contents are correct.
