@@ -15,13 +15,15 @@ on:
         options:
           - amd64
           - arm64
+  # Only run for changes that can actually change the disk images. In
+  # particular do not list this file: an action bump by Dependabot would
+  # otherwise kick off a full, hour long disk build.
   pull_request:
     branches:
       - main
     paths:
       - 'disk_config/disk.toml'
       - 'disk_config/iso.toml'
-      - '.github/workflows/build-disk.yml'
 
 env:
   IMAGE_NAME: ${{ github.event.repository.name }} # output of build.yml, keep in sync
