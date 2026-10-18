@@ -87,7 +87,7 @@ jobs:
             echo "--> packages we promise"
             for pkg in kate gwenview ark mpv vim-enhanced \
                        nvidia-driver kmod-nvidia \
-                       mesa-va-drivers-freeworld gstreamer1-plugin-openh264; do
+                       gstreamer1-plugin-openh264; do
               rpm -q "${pkg}" >/dev/null || { echo "MISSING: ${pkg}"; exit 1; }
             done
 

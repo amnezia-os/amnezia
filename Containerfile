@@ -67,11 +67,12 @@ RUN kver="$(rpm -q --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}' kernel | head -
  && echo "kernel of kmod  : ${mver}" \
  && test "${kver}" = "${mver}"
 
-### RE-ENABLE THE REPOS THE NVIDIA INSTALLER TURNED OFF
-## The installer disables RPM Fusion on purpose (so that its own driver packages
-## win) and also disables the Cisco openh264 repo. We want both available again
-## afterwards: RPM Fusion is where our codecs come from.
-RUN dnf5 config-manager setopt "rpmfusion*".enabled=1 fedora-cisco-openh264.enabled=1
+### RE-ENABLE THE CISCO OPENH264 REPO THE NVIDIA INSTALLER TURNED OFF
+## The installer disables it on purpose so that its own driver packages win, but
+## gstreamer1-plugin-openh264 comes from there and we want it available for the
+## user as well. (RPM Fusion would be re-enabled here too, but this image
+## deliberately does not use RPM Fusion at all - see build_files/build.sh.)
+RUN dnf5 config-manager setopt fedora-cisco-openh264.enabled=1
 
 ### LINTING
 ## Verify final image and contents are correct.
