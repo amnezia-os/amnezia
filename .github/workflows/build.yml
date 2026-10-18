@@ -74,6 +74,43 @@ jobs:
             ${IMAGE_NAME} \
             ${DEFAULT_TAG}
 
+      # Amnezia OS: fail early if the image is missing something it promises,
+      # instead of publishing a broken image.
+      - name: Smoke tests
+        run: |
+          set -euo pipefail
+          IMAGE="${IMAGE_NAME}:${DEFAULT_TAG}"
+
+          podman run --rm "${IMAGE}" /bin/bash -c '
+            set -euo pipefail
+
+            echo "--> packages we promise"
+            for pkg in kate gwenview ark mpv vim-enhanced \
+                       nvidia-driver kmod-nvidia \
+                       mesa-va-drivers-freeworld gstreamer1-plugins-ugly; do
+              rpm -q "${pkg}" >/dev/null || { echo "MISSING: ${pkg}"; exit 1; }
+            done
+
+            echo "--> the NVIDIA module is built for the kernel we ship"
+            kver="$(rpm -q --queryformat "%{VERSION}-%{RELEASE}.%{ARCH}" kernel | head -n1)"
+            mver="$(rpm -q --queryformat "%{VERSION}" kmod-nvidia | head -n1)"
+            [ "${kver}" = "${mver}" ] || { echo "MISMATCH: kernel ${kver} vs kmod ${mver}"; exit 1; }
+
+            echo "--> branding"
+            test -f /usr/share/wallpapers/Amnezia/contents/images/1920x1080.png
+            test -f /usr/share/plasma/look-and-feel/org.amnezia.desktop/metadata.json
+            test -f /etc/pki/containers/amnezia.pub
+
+            echo "--> things we removed are really gone"
+            for pkg in kmail kontact elisa-player libreoffice-core; do
+              if rpm -q "${pkg}" >/dev/null 2>&1; then
+                echo "STILL PRESENT: ${pkg}"; exit 1
+              fi
+            done
+
+            echo "smoke tests passed"
+          '
+
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
         id: rechunk
@@ -98,6 +135,10 @@ jobs:
           alias_tags="$(just generate-build-tags \
                         ${IMAGE_NAME} \
                         ${DEFAULT_TAG})"
+
+          # Amnezia OS: publish a moving `latest` tag alongside the Fedora
+          # version tag (44), so `bootc switch ...:latest` keeps working.
+          alias_tags="${alias_tags} latest"
 
           echo "Tags for this Action..."
           echo "${alias_tags}"

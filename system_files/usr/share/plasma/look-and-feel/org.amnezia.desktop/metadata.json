@@ -1,0 +1,15 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Amnezia OS"
+            }
+        ],
+        "Description": "Default Amnezia OS look and feel",
+        "Id": "org.amnezia.desktop",
+        "License": "Apache-2.0",
+        "Name": "Amnezia OS",
+        "Version": "1.0"
+    }
+}

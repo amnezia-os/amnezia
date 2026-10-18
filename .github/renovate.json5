@@ -8,15 +8,20 @@
 
   "packageRules": [
     {
+      "autoupdate": true,
       "automerge": true,
       "matchUpdateTypes": ["pin", "pinDigest"]
     },
-    // This prevents the default demo image used in ublue-os/image-template
-    // from being pinned as it serves no purpose there
+    // Amnezia OS deliberately follows floating tags: the base image tracks
+    // Fedora 44 and the NVIDIA modules track the daily akmods rebuilds.
+    // Pinning them to a digest would defeat that, so leave them alone.
     {
       "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/ublue-os/bazzite"],
-      "pinDigests": false
+      "matchPackageNames": [
+        "ghcr.io/ublue-os/kinoite-main",
+        "ghcr.io/ublue-os/akmods-nvidia-open"
+      ],
+      "enabled": false
     },
     {
       "enabled": false,
