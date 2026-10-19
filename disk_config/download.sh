@@ -22,9 +22,11 @@ if (( found == 0 )); then
     exit 1
 fi
 
-if [[ -f SHA256SUMS ]]; then
+if compgen -G "*.sha256" > /dev/null; then
     echo "==> проверяю контрольные суммы"
-    sha256sum -c SHA256SUMS
+    for sum in *.sha256; do
+        sha256sum -c "$sum"
+    done
 fi
 
 echo

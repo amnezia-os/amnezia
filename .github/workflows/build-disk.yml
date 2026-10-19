@@ -135,9 +135,12 @@ jobs:
             -exec cp --sparse=always -v {} "${STAGE}/" \;
           cp disk_config/download.sh "${STAGE}/download.sh"
 
-          # Checksums of the whole images, computed *before* splitting: the
-          # downloader verifies them after reassembly.
-          ( cd "${STAGE}" && sha256sum -- *.iso *.qcow2 > SHA256SUMS )
+          # One checksum file per image: the two matrix jobs upload into the
+          # same release, so a single shared SHA256SUMS would be overwritten by
+          # whichever job finishes last.
+          ( cd "${STAGE}" && for f in *.iso *.qcow2; do
+              sha256sum -- "$f" > "$f.sha256"
+            done )
 
           limit=$((2000 * 1024 * 1024))
           for f in "${STAGE}"/*.iso "${STAGE}"/*.qcow2; do

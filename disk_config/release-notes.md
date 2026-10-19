@@ -21,7 +21,7 @@ The script joins the parts back into whole images and verifies their SHA-256.
 |---|---|
 | `*.iso` | Anaconda installer. Boot it, partition your disk as you like, install. The installer points the new system at the Amnezia image, so updates work afterwards. |
 | `*.qcow2` | Ready-made virtual disk for QEMU/KVM. Root filesystem is ext4, 30 GiB virtual size. |
-| `SHA256SUMS` | Checksums of the complete (joined) images. |
+| `*.sha256` | Checksum of the complete (joined) image. |
 
 ## Notes
 

@@ -59,9 +59,16 @@ sudo bootc switch ghcr.io/ublue-os/kinoite-main:44
 
 ### From an ISO
 
-Grab the Anaconda ISO from the [Build disk images](.github/workflows/build-disk.yml)
-workflow run, boot it, partition your disk the way you like and install. The
-installer will automatically point the new installation at
+The disk images live in [Releases](https://github.com/amnezia-os/amnezia/releases).
+Download every file of the newest `disks-*` release into one directory and run:
+
+```bash
+bash download.sh
+```
+
+That joins the parts (GitHub caps a release asset at 2 GiB) and verifies the
+checksums. Then boot the ISO, partition your disk the way you like and install.
+The installer will automatically point the new installation at
 `ghcr.io/amnezia-os/amnezia:latest`.
 
 Amnezia declares **ext4** as its default root filesystem
