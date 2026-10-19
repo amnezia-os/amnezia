@@ -100,7 +100,9 @@ jobs:
             echo "--> the image tells installers which root filesystem to use"
             test -f /usr/lib/bootc/install/00-amnezia.toml \
               || { echo "MISSING: /usr/lib/bootc/install/00-amnezia.toml"; exit 1; }
-            grep -q '^type = "ext4"' /usr/lib/bootc/install/00-amnezia.toml \
+            # no single quotes here: the whole script is passed to `bash -c`
+            # inside single quotes, so nested ones would end it early
+            grep -q "type = .ext4." /usr/lib/bootc/install/00-amnezia.toml \
               || { echo "the bootc install config does not ask for ext4"; exit 1; }
 
             echo "--> branding"
