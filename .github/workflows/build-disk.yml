@@ -9,6 +9,11 @@ on:
         required: false
         default: false
         type: boolean
+      publish-release:
+        description: "Publish disk images as a GitHub release (splits files over 2 GiB)"
+        required: false
+        default: false
+        type: boolean
       platform:
         required: true
         type: choice
@@ -40,13 +45,16 @@ jobs:
     name: Build disk images
     # `inputs.platform` is empty when the workflow is triggered by a pull
     # request, and Amnezia OS only ships amd64 images, so default to amd64.
-    runs-on: ${{ inputs.platform == 'arm64' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
+    # ubuntu-26.04 runs the job with mount restrictions that make osbuild fail
+    # with "mount: /run/osbuild/tree/dev: permission denied"; 24.04 is LTS and
+    # is what bootc-image-builder is normally exercised on.
+    runs-on: ${{ inputs.platform == 'arm64' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
         disk-type: ["qcow2", "anaconda-iso"]
     permissions:
-      contents: read
+      contents: write   # needed to create the GitHub release
       packages: read
       id-token: write
 
@@ -94,7 +102,7 @@ jobs:
           additional-args: --use-librepo=True --rootfs ext4
 
       - name: Upload disk images and Checksum to Job Artifacts
-        if: inputs.upload-to-sourceforge != true && github.event_name != 'pull_request'
+        if: inputs.upload-to-sourceforge != true && inputs.publish-release != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: ${{ steps.build.outputs.output-directory }}
@@ -103,9 +111,52 @@ jobs:
           compression-level: 0
           overwrite: true
       
+      # GitHub caps a release asset at 2 GiB, so bigger images are published as
+      # <name>.part00, <name>.part01, ... next to download.sh, which reassembles
+      # them and verifies the checksums. Needs no account, phone or card from
+      # whoever downloads them.
+      - name: Publish to GitHub Releases
+        if: inputs.publish-release == true && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_DIR: ${{ steps.build.outputs.output-directory }}
+        run: |
+          set -euo pipefail
+          TAG="disks-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+
+          STAGE="$(mktemp -d)"
+          trap 'rm -rf "${STAGE}"' EXIT
+
+          # bootc-image-builder nests its output, so collect the images flat.
+          find "${SOURCE_DIR}" -type f \( -name '*.iso' -o -name '*.qcow2' \) \
+            -exec cp --sparse=always -v {} "${STAGE}/" \;
+          cp disk_config/download.sh "${STAGE}/download.sh"
+
+          # Checksums of the whole images, computed *before* splitting: the
+          # downloader verifies them after reassembly.
+          ( cd "${STAGE}" && sha256sum -- *.iso *.qcow2 > SHA256SUMS )
+
+          limit=$((2000 * 1024 * 1024))
+          for f in "${STAGE}"/*.iso "${STAGE}"/*.qcow2; do
+            [[ -f "$f" ]] || continue
+            if (( $(stat -c%s "$f") > limit )); then
+              echo "==> $(basename "$f") is over 2 GiB, splitting"
+              split -b 1900M -d -a 2 "$f" "${f}.part"
+              rm -f "$f"
+            fi
+          done
+
+          gh release create "${TAG}" \
+            --title "Amnezia OS disk images $(date -u +%Y-%m-%d)" \
+            --notes-file disk_config/release-notes.md
+          gh release upload "${TAG}" "${STAGE}"/* --clobber
+
       # SourceForge's File Release System takes uploads over rsync/SSH and then
       # mirrors them worldwide. Same command the docs recommend for anything
-      # over 100 MB, since it resumes interrupted transfers.
+      # over 100 MB, since it resumes interrupted transfers. Kept as an
+      # alternative for when a SourceForge account is available (their sign-up
+      # phone verification does not cover every country).
       - name: Upload to SourceForge
         if: inputs.upload-to-sourceforge == true && github.event_name != 'pull_request'
         shell: bash
@@ -124,6 +175,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
           REMOTE="/home/frs/project/${SF_PROJECT}/amnezia"
+          ssh "${SF_USERNAME}@frs.sourceforge.net" "mkdir -p ${REMOTE}"
 
           # bootc-image-builder nests its output (e.g. output/bootiso/...), so
           # collect the images flat: one predictable file name per build.

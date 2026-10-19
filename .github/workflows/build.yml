@@ -11,6 +11,10 @@ on:
       - main
     paths-ignore:
       - '**/README.md'
+      # Disk images are built from the published container image, so changes
+      # to their configuration do not require rebuilding it.
+      - 'disk_config/**'
+      - '.github/workflows/build-disk.yml'
   workflow_dispatch:
 
 env:
