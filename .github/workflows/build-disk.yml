@@ -105,6 +105,7 @@ jobs:
         if: inputs.upload-to-sourceforge != true && inputs.publish-release != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          name: amnezia-${{ matrix.disk-type }}
           path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
           retention-days: 0
@@ -123,6 +124,7 @@ jobs:
           SOURCE_DIR: ${{ steps.build.outputs.output-directory }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
           TAG="disks-$(date -u +%Y%m%d)-${GITHUB_RUN_NUMBER}"
 
           STAGE="$(mktemp -d)"
@@ -139,7 +141,6 @@ jobs:
 
           limit=$((2000 * 1024 * 1024))
           for f in "${STAGE}"/*.iso "${STAGE}"/*.qcow2; do
-            [[ -f "$f" ]] || continue
             if (( $(stat -c%s "$f") > limit )); then
               echo "==> $(basename "$f") is over 2 GiB, splitting"
               split -b 1900M -d -a 2 "$f" "${f}.part"
@@ -147,10 +148,25 @@ jobs:
             fi
           done
 
+          # One job per disk type publishes into the same release; whichever
+          # gets there first writes the notes, the other just adds its assets.
           gh release create "${TAG}" \
             --title "Amnezia OS disk images $(date -u +%Y-%m-%d)" \
-            --notes-file disk_config/release-notes.md
+            --notes-file disk_config/release-notes.md \
+            || echo "release ${TAG} already created by the other job"
+
           gh release upload "${TAG}" "${STAGE}"/* --clobber
+
+          # Release assets are not unlimited: keep this build and the previous
+          # one, drop everything older.
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | { grep '^disks-' || true; } \
+            | { grep -vx "${TAG}" || true; } \
+            | tail -n +2 \
+            | while read -r old; do
+                echo "==> deleting old release ${old}"
+                gh release delete "${old}" --yes --cleanup-tag
+              done
 
       # SourceForge's File Release System takes uploads over rsync/SSH and then
       # mirrors them worldwide. Same command the docs recommend for anything
