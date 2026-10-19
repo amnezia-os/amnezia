@@ -4,8 +4,8 @@ name: Build disk images
 on:
   workflow_dispatch:
     inputs:
-      upload-to-s3:
-        description: "Upload to S3"
+      upload-to-sourceforge:
+        description: "Upload disk images to SourceForge"
         required: false
         default: false
         type: boolean
@@ -94,7 +94,7 @@ jobs:
           additional-args: --use-librepo=True --rootfs ext4
 
       - name: Upload disk images and Checksum to Job Artifacts
-        if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
+        if: inputs.upload-to-sourceforge != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: ${{ steps.build.outputs.output-directory }}
@@ -103,18 +103,43 @@ jobs:
           compression-level: 0
           overwrite: true
       
-      - name: Upload to S3
-        if: inputs.upload-to-s3 == true && github.event_name != 'pull_request'
+      # SourceForge's File Release System takes uploads over rsync/SSH and then
+      # mirrors them worldwide. Same command the docs recommend for anything
+      # over 100 MB, since it resumes interrupted transfers.
+      - name: Upload to SourceForge
+        if: inputs.upload-to-sourceforge == true && github.event_name != 'pull_request'
         shell: bash
         env:
-          RCLONE_CONFIG_S3_TYPE: s3
-          RCLONE_CONFIG_S3_PROVIDER: ${{ secrets.S3_PROVIDER }}
-          RCLONE_CONFIG_S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
-          RCLONE_CONFIG_S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          RCLONE_CONFIG_S3_REGION: ${{ secrets.S3_REGION }}
-          RCLONE_CONFIG_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          SF_USERNAME: ${{ secrets.SF_USERNAME }}
+          SF_PROJECT: ${{ secrets.SF_PROJECT }}
+          SF_SSH_KEY: ${{ secrets.SF_SSH_KEY }}
           SOURCE_DIR: ${{ steps.build.outputs.output-directory }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y rclone
-          rclone copy $SOURCE_DIR S3:${{ secrets.S3_BUCKET_NAME }}
+          set -euo pipefail
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${SF_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519,rsa frs.sourceforge.net >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 600 ~/.ssh/known_hosts
+
+          REMOTE="/home/frs/project/${SF_PROJECT}/amnezia"
+
+          # bootc-image-builder nests its output (e.g. output/bootiso/...), so
+          # collect the images flat: one predictable file name per build.
+          STAGE="$(mktemp -d)"
+          trap 'rm -rf "${STAGE}"' EXIT
+          find "${SOURCE_DIR}" -type f \
+            \( -name '*.iso' -o -name '*.qcow2' -o -name '*CHECKSUM*' \) \
+            -exec cp -v {} "${STAGE}/" \;
+          # The release page shows README.md contents to visitors, so ship the
+          # download instructions alongside the images.
+          cp disk_config/sourceforge-readme.md "${STAGE}/README.md"
+
+          # --delete-after replaces the previous build instead of piling up:
+          # the project has a soft disk quota, and every run adds several GB.
+          rsync -avP --delete-after \
+            --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
+            -e ssh \
+            "${STAGE}/" \
+            "${SF_USERNAME}@frs.sourceforge.net:${REMOTE}/"

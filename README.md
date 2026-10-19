@@ -131,7 +131,7 @@ just lint             # shellcheck
 | `image-template.env` | image name, organisation, tags, description |
 | `disk_config/iso.toml` | Anaconda ISO configuration |
 | `.github/workflows/build.yml` | builds, rechunks, signs and pushes the image |
-| `.github/workflows/build-disk.yml` | builds qcow2/ISO and uploads them to S3 |
+| `.github/workflows/build-disk.yml` | builds qcow2/ISO and uploads them to SourceForge |
 | `branding/` | logos and wallpaper sources |
 
 ## Credits
