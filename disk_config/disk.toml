@@ -1,3 +1,5 @@
 [[customizations.filesystem]]
 mountpoint = "/"
-minsize = "20 GiB"
+# Room for the image itself plus one full update deployment, which bootc keeps
+# around until the next reboot.
+minsize = "30 GiB"

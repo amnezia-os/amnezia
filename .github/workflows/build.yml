@@ -97,6 +97,12 @@ jobs:
             ls /lib/modules/"${kver}"/extra/nvidia/nvidia*.ko* >/dev/null \
               || { echo "MISSING: no nvidia module under /lib/modules/${kver}"; exit 1; }
 
+            echo "--> the image tells installers which root filesystem to use"
+            test -f /usr/lib/bootc/install/00-amnezia.toml \
+              || { echo "MISSING: /usr/lib/bootc/install/00-amnezia.toml"; exit 1; }
+            grep -q '^type = "ext4"' /usr/lib/bootc/install/00-amnezia.toml \
+              || { echo "the bootc install config does not ask for ext4"; exit 1; }
+
             echo "--> branding"
             test -f /usr/share/wallpapers/Amnezia/contents/images/1920x1080.png
             test -f /usr/share/plasma/look-and-feel/org.amnezia.desktop/metadata.json

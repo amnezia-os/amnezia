@@ -1,0 +1,13 @@
+# How this image wants to be installed.
+#
+# The base image ships an empty /usr/lib/bootc/install/, so bootc (and
+# bootc-image-builder) cannot tell which root filesystem to create and stops
+# with "missing required info: DefaultRootFs". This file fills that gap.
+#
+# ext4 is deliberate: Amnezia is meant to be installed as one plain root
+# partition, and e2fsprogs (mkfs.ext4) is present in the image. Files found in
+# this directory are merged in alphanumeric order, so a derived image can
+# override this with e.g. 50-something.toml.
+
+[install.filesystem.root]
+type = "ext4"
