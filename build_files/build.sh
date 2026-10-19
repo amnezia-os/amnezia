@@ -103,6 +103,13 @@ fi
 ### 4. Services -------------------------------------------------------------
 systemctl enable podman.socket
 
+### 4b. Apply system_files again ---------------------------------------------
+## Package operations above can overwrite files we ship: /usr/lib/os-release
+## and /usr/lib/fedora-release belong to the fedora-release packages, so an
+## install or upgrade puts Fedora's naming back. Re-applying the tree at the
+## end makes our branding win regardless of what dnf did in between.
+cp -avf "/ctx/system_files"/. /
+
 ### 5. Sanity check ---------------------------------------------------------
 ## Everything the user explicitly asked for has to be there.
 for pkg in kate gwenview ark mpv vim-enhanced; do

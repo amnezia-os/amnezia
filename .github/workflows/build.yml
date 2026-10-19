@@ -113,6 +113,14 @@ jobs:
             test -f /usr/share/wallpapers/Amnezia/contents/images/1920x1080.png
             test -f /usr/share/plasma/look-and-feel/org.amnezia.desktop/metadata.json
             test -f /etc/pki/containers/amnezia.pub
+            grep -qx "NAME=\"Amnezia\"" /usr/lib/os-release \
+              || { echo "os-release does not call the system Amnezia"; exit 1; }
+            grep -qx "ID=amnezia" /usr/lib/os-release \
+              || { echo "os-release ID is not amnezia"; exit 1; }
+            # Repositories take $releasever from VERSION_ID; changing it would
+            # point dnf at a Fedora release that does not exist.
+            grep -qx "VERSION_ID=44" /usr/lib/os-release \
+              || { echo "VERSION_ID must stay 44"; exit 1; }
 
             echo "--> things we removed are really gone"
             for pkg in kmail kontact elisa-player libreoffice-core; do
